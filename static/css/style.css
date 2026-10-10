@@ -1,0 +1,145 @@
+/* =========================================================================
+   Meeting Analyzer - global styles (works together with Bootstrap 5)
+   ========================================================================= */
+
+:root {
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --ink: #1f2937;
+  --muted: #6b7280;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: #f4f6fb;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main { flex: 1 0 auto; }
+
+/* ---------- navbar ---------- */
+.bg-brand {
+  background: linear-gradient(90deg, #1e3a8a 0%, var(--brand) 55%, #3b82f6 100%) !important;
+}
+.navbar-brand { letter-spacing: .2px; }
+.nav-link.active { font-weight: 600; }
+.nav-link.active::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background: rgba(255, 255, 255, .75);
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
+/* ---------- dashboard stat cards ---------- */
+.stat-card { border-radius: .9rem; }
+.stat-card .card-body { padding: 1.1rem 1.25rem; }
+.stat-icon {
+  width: 2.4rem; height: 2.4rem;
+  border-radius: .7rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  margin-bottom: .65rem;
+}
+.stat-value { font-size: 1.85rem; font-weight: 700; line-height: 1.1; }
+.stat-label { color: var(--muted); font-size: .85rem; }
+
+/* ---------- cards ---------- */
+.card { border-radius: .85rem; }
+.card-header { border-radius: .85rem .85rem 0 0 !important; }
+.cursor-pointer { cursor: pointer; }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* ---------- forms ---------- */
+.form-control:focus, .form-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .15);
+}
+.notes-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: .6rem;
+  padding: 1rem;
+  max-height: 24rem;
+  overflow: auto;
+}
+.font-monospace.notes-pre { font-size: .82rem; }
+
+/* ---------- action-item table ---------- */
+#itemsTable td { vertical-align: top; padding-top: .6rem; }
+#itemsTable .form-control, #itemsTable .form-select { font-size: .875rem; }
+.deadline-meta { line-height: 1.35; min-height: 1rem; }
+.row-num { padding-top: .75rem; }
+
+/* ---------- loading overlay ---------- */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  background: rgba(15, 23, 42, .82);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.loading-overlay .spinner-border { width: 3.2rem; height: 3.2rem; }
+
+/* ---------- chat (ask about this meeting) ---------- */
+.chat-log {
+  max-height: 22rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding-right: .25rem;
+}
+.chat-msg { max-width: 85%; }
+.chat-user { align-self: flex-end; text-align: right; }
+.chat-assistant { align-self: flex-start; }
+.chat-role { margin-bottom: .2rem; }
+.chat-bubble {
+  display: inline-block;
+  padding: .55rem .85rem;
+  border-radius: .9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  font-size: .925rem;
+}
+.chat-user .chat-bubble {
+  background: var(--brand);
+  color: #fff;
+  border-bottom-right-radius: .25rem;
+}
+.chat-assistant .chat-bubble {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: .25rem;
+}
+.chat-thinking .chat-bubble { color: var(--muted); font-style: italic; }
+.chat-error .chat-bubble {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.chat-example { text-decoration: none; }
+.chat-example:hover { text-decoration: underline; }
+
+/* ---------- misc ---------- */
+.badge { font-weight: 500; }
+.table > :not(caption) > * > * { padding: .7rem .75rem; }
+footer { background: #fff; }
+
+@media (max-width: 575.98px) {
+  .stat-value { font-size: 1.5rem; }
+  #itemsTable { font-size: .85rem; }
+}

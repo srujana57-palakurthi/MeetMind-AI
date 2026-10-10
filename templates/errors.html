@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} - Meeting Analyzer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 text-center py-5">
+    <div class="display-4 text-primary mb-3">
+      <i class="bi bi-emoji-frown"></i>
+    </div>
+    <h1 class="h2">{{ code }} &mdash; {{ title }}</h1>
+    <p class="text-secondary">{{ message }}</p>
+    <div class="mt-4">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-2">
+        <i class="bi bi-speedometer2 me-1"></i>Back to dashboard
+      </a>
+      <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i>Meeting history
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

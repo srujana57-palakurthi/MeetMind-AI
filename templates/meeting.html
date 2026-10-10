@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}{{ meeting.title }} - Meeting Analyzer{% endblock %}
+
+{% macro deadline_meta(item) %}
+  {% if item.deadline_type == 'absolute' %}
+    <span class="badge text-bg-light border">absolute date</span>
+  {% elif item.deadline_type == 'relative' %}
+    <span class="badge text-bg-info-subtle text-info-emphasis border">relative date</span>
+    {% if item.deadline_resolved %}
+      <span class="text-primary ms-1">&rarr; <span class="resolved-date" data-iso="{{ item.deadline_resolved }}">{{ item.deadline_resolved|datefmt }}</span></span>
+    {% endif %}
+  {% elif item.deadline_type == 'unclassified' %}
+    <span class="badge text-bg-light border text-secondary">as written</span>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+
+{# ================= header ================= #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-7">
+        <label for="meetingTitle" class="form-label small text-secondary mb-1">Meeting title (editable)</label>
+        <div class="input-group">
+          <input id="meetingTitle" class="form-control form-control-lg fw-semibold"
+                 value="{{ meeting.title }}" maxlength="200">
+          <button id="saveTitleBtn" class="btn btn-outline-primary" type="button" disabled
+                  title="Save the new title">
+            <i class="bi bi-check-lg"></i> Save
+          </button>
+        </div>
+        <div class="small text-secondary mt-2">
+          {% if meeting.meeting_date %}
+            <span class="badge text-bg-light border me-1"><i class="bi bi-calendar3"></i>
+              {{ meeting.meeting_date|datefmt }}</span>
+          {% else %}
+            <span class="badge text-bg-light border me-1"><i class="bi bi-calendar3"></i> meeting date not set</span>
+          {% endif %}
+          <span class="badge text-bg-light border me-1"><i class="bi bi-clock"></i>
+            analyzed {{ meeting.created_at|datefmt }}</span>
+          <span class="badge text-bg-light border"><i class="bi bi-cpu"></i>
+            {{ meeting.ai_model or 'unknown model' }}</span>
+          {% if meeting.source_filename %}
+            <span class="badge text-bg-light border"><i class="bi bi-paperclip"></i>
+              {{ meeting.source_filename }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+          <a class="btn btn-outline-secondary" href="{{ url_for('history') }}">
+            <i class="bi bi-arrow-left"></i> History
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('meeting_tasks_csv', meeting_id=meeting.id) }}">
+            <i class="bi bi-filetype-csv"></i> Tasks CSV
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('meeting_report', meeting_id=meeting.id) }}">
+            <i class="bi bi-file-earmark-arrow-down"></i> Download report
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('new_meeting') }}">
+            <i class="bi bi-plus-square"></i> New meeting
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ================= summary + key points ================= #}
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 fw-semibold">
+        <i class="bi bi-card-text me-2 text-primary"></i>Summary
+      </div>
+      <div class="card-body">
+        <p class="mb-0">{{ meeting.summary }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 fw-semibold">
+        <i class="bi bi-list-ul me-2 text-primary"></i>Key discussion points
+      </div>
+      <div class="card-body">
+        {% if meeting.key_points %}
+        <ul class="mb-0 ps-3 lh-lg">
+          {% for point in meeting.key_points %}<li>{{ point }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-secondary mb-0">No key points were detected.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ================= decisions ================= #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-briefcase me-2 text-primary"></i>Decisions</span>
+    <span class="small text-secondary d-none d-sm-inline">
+      <span class="badge text-bg-success">confirmed</span> = actually decided &nbsp;
+      <span class="badge text-bg-warning text-dark">suggested</span> = only proposed
+    </span>
+  </div>
+  <div class="card-body">
+    {% if meeting.decisions %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr><th style="width:70%;">Decision / suggestion</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for d in meeting.decisions %}
+          <tr>
+            <td>{{ d.decision }}</td>
+            <td>
+              {% if d.status == 'confirmed' %}
+                <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>confirmed</span>
+              {% elif d.status == 'suggested' %}
+                <span class="badge text-bg-warning text-dark"><i class="bi bi-lightbulb me-1"></i>suggested</span>
+              {% else %}
+                <span class="badge text-bg-secondary">not specified</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-secondary mb-0">No decisions were found in the notes.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ================= action items ================= #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Action items</span>
+    <div class="d-flex align-items-center gap-2">
+      <span id="itemsDirty" class="small text-warning d-none"><i class="bi bi-circle-fill me-1" style="font-size:.55rem;"></i>Unsaved changes</span>
+      <button class="btn btn-sm btn-outline-success" type="button" id="addItemBtn">
+        <i class="bi bi-plus-lg"></i> Add task
+      </button>
+      <button class="btn btn-sm btn-primary" type="button" id="saveItemsBtn" disabled>
+        <i class="bi bi-save"></i> Save changes
+      </button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0" id="itemsTable">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:2.5rem;">#</th>
+            <th style="min-width:16rem;">Task</th>
+            <th style="min-width:9rem;">Owner</th>
+            <th style="min-width:13rem;">Deadline</th>
+            <th style="width:9.5rem;">Status</th>
+            <th style="width:3rem;"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody">
+          {% for item in meeting.action_items %}
+          <tr class="item-row" data-id="{{ item.id }}">
+            <td class="ps-3 text-secondary small row-num">{{ loop.index }}</td>
+            <td><input class="form-control form-control-sm i-task" maxlength="500" value="{{ item.task }}"></td>
+            <td>
+              <input class="form-control form-control-sm i-owner" maxlength="120"
+                     value="{{ item.owner or '' }}" placeholder="Not specified">
+            </td>
+            <td>
+              <input class="form-control form-control-sm i-deadline" maxlength="120"
+                     value="{{ item.deadline or '' }}" placeholder="Not specified">
+              <div class="deadline-meta small mt-1">{{ deadline_meta(item) }}</div>
+            </td>
+            <td>
+              <select class="form-select form-select-sm i-status">
+                {% for s in statuses %}
+                  <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-end pe-3">
+              <button class="btn btn-sm btn-outline-danger remove-row" type="button" title="Remove task">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div id="itemsEmpty" class="p-4 text-center text-secondary {% if meeting.action_items %}d-none{% endif %}">
+      No action items were found in this meeting.
+    </div>
+    <div class="px-3 py-2 border-top small text-secondary">
+      Owners and deadlines that were not mentioned in the notes stay empty and are
+      shown as <strong>Not specified</strong> &mdash; they are never invented.
+      Relative deadlines are only resolved when the meeting date is known.
+    </div>
+  </div>
+</div>
+
+{# ================= follow-up email ================= #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-envelope-paper me-2 text-primary"></i>Follow-up email draft</span>
+    <div class="d-flex align-items-center gap-2">
+      <span id="emailDirty" class="small text-warning d-none"><i class="bi bi-circle-fill me-1" style="font-size:.55rem;"></i>Unsaved changes</span>
+      <button class="btn btn-sm btn-outline-secondary" type="button" id="copyEmailBtn">
+        <i class="bi bi-clipboard"></i> Copy
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadEmailBtn">
+        <i class="bi bi-download"></i> Download .txt
+      </button>
+      <button class="btn btn-sm btn-primary" type="button" id="saveEmailBtn" disabled>
+        <i class="bi bi-save"></i> Save email
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-light border small py-2 mb-3">
+      <i class="bi bi-lock me-1"></i>
+      This email is <strong>never sent automatically</strong>. Edit it, then copy it
+      into your own mail program and send it yourself.
+    </div>
+
+    <label class="form-label small text-secondary mb-1" for="emailSubject">Subject</label>
+    <input id="emailSubject" class="form-control mb-3" maxlength="300"
+           value="{{ meeting.email_subject }}">
+
+    <label class="form-label small text-secondary mb-1" for="emailBody">Body</label>
+    <textarea id="emailBody" class="form-control font-monospace" rows="16">{{ meeting.email_body }}</textarea>
+  </div>
+</div>
+
+{# ================= chat: ask about this meeting ================= #}
+<div class="card border-0 shadow-sm mb-4" id="chatCard">
+  <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-chat-dots me-2 text-primary"></i>Ask about this meeting</span>
+    {% if chat_enabled and chat %}
+    <button class="btn btn-sm btn-outline-secondary" type="button" id="clearChatBtn">
+      <i class="bi bi-trash"></i> Clear chat
+    </button>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if chat_enabled %}
+    <div id="chatLog" class="chat-log mb-3">
+      {% for msg in chat %}
+      <div class="chat-msg chat-{{ msg.role }}">
+        <div class="chat-role small text-secondary mb-1">{{ 'You' if msg.role == 'user' else 'Assistant' }}</div>
+        <div class="chat-bubble">{{ msg.content }}</div>
+      </div>
+      {% endfor %}
+      {% if not chat %}
+      <div class="text-secondary small">
+        Ask anything about this meeting &mdash; e.g.
+        <a href="#" class="chat-example" data-question="What did Alice promise, and by when?"><em>&ldquo;What did Alice promise, and by when?&rdquo;</em></a>.
+        Answers come <strong>only</strong> from these notes.
+      </div>
+      {% endif %}
+    </div>
+    <form id="chatForm" class="d-flex flex-column flex-sm-row gap-2">
+      <input id="chatInput" class="form-control" maxlength="500" autocomplete="off"
+             placeholder="Ask a question about this meeting&hellip;">
+      <button class="btn btn-primary text-nowrap" type="submit" id="chatSendBtn">
+        <i class="bi bi-send me-1"></i> Ask
+      </button>
+    </form>
+    {% else %}
+    <p class="text-secondary mb-0">
+      Chat needs a local Ollama model &mdash; set one on the
+      <a href="{{ url_for('settings') }}">Settings</a> page.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{# ================= original notes ================= #}
+<details class="card border-0 shadow-sm mb-4">
+  <summary class="card-header bg-white py-3 fw-semibold cursor-pointer">
+    <i class="bi bi-file-text me-2 text-secondary"></i>Original meeting content
+  </summary>
+  <div class="card-body">
+    <pre class="notes-pre small mb-0">{{ meeting.source_text }}</pre>
+  </div>
+</details>
+
+{# ================= delete ================= #}
+<div class="text-center mb-3">
+  <form method="post" action="{{ url_for('delete_meeting', meeting_id=meeting.id) }}"
+        onsubmit="return confirm('Delete this meeting and all of its action items? This cannot be undone.');">
+    <button class="btn btn-link btn-sm text-danger" type="submit">
+      <i class="bi bi-trash"></i> Delete this meeting
+    </button>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.MEETING = {
+    id: {{ meeting.id }},
+    statuses: {{ statuses | tojson }},
+    meetingDate: {{ (meeting.meeting_date or '') | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/meeting.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

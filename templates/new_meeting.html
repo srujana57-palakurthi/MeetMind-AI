@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}New Meeting - Meeting Analyzer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+    <div class="text-center mb-4">
+      <h1 class="h3 mb-1">Analyze a new meeting</h1>
+      <p class="text-secondary mb-0">
+        Paste your notes or upload a file &rarr; get a summary, decisions,
+        action items with owners and deadlines, and a follow-up email.
+      </p>
+    </div>
+
+    {% if not configured %}
+    <div class="alert alert-info d-flex align-items-start" role="alert">
+      <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+      <div>
+        <strong>Offline mode.</strong> No <code>OLLAMA_MODEL</code> was found in your
+        <code>.env</code> file, so the built-in offline analyzer is used.
+        It only extracts information that is really in your notes.
+        Install <a href="https://ollama.com/download" target="_blank" rel="noopener">Ollama</a>
+        and set the model in <a href="{{ url_for('settings') }}">Settings</a>
+        for full AI results.
+      </div>
+    </div>
+    {% endif %}
+
+    <form id="analyzeForm" action="{{ url_for('analyze') }}" method="post"
+          enctype="multipart/form-data" novalidate>
+      <div class="row g-4">
+
+        {# ---------------- notes ---------------- #}
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 fw-semibold">
+              <i class="bi bi-pencil-square me-2 text-primary"></i>Meeting notes or transcript
+            </div>
+            <div class="card-body">
+              <label for="notes" class="form-label small text-secondary">
+                Paste the notes below (minimum {{ 30 }} characters).
+              </label>
+              <textarea name="notes" id="notes" class="form-control font-monospace"
+                        rows="14" placeholder="e.g.&#10;Weekly product sync - 9 October 2026&#10;&#10;- Alice reported the login bug is fixed.&#10;- The team agreed to move the launch to 20 October.&#10;- Bob will send the press release by next Monday."></textarea>
+              <div class="form-text" id="notesHint">
+                <span id="charCount">0</span> characters
+              </div>
+
+              <hr class="my-4">
+
+              <label for="file" class="form-label fw-semibold">
+                <i class="bi bi-upload me-1"></i>Or upload a file
+              </label>
+              <input class="form-control" type="file" id="file" name="file"
+                     accept=".txt,.pdf,.docx">
+              <div class="form-text">
+                Accepted: <strong>.txt, .pdf, .docx</strong> &middot;
+                max {{ max_mb }} MB &middot; the PDF must contain selectable text
+                (scanned image PDFs cannot be read).
+              </div>
+              <div id="fileError" class="text-danger small mt-2 d-none"></div>
+
+              <hr class="my-4">
+
+              <label class="form-label fw-semibold" for="audioFile">
+                <i class="bi bi-mic me-1"></i>Or transcribe a recording
+              </label>
+              {% if audio_available %}
+              <input class="form-control" type="file" id="audioFile" name="audio"
+                     accept=".mp3,.wav,.m4a,.webm,.ogg,.flac,audio/*">
+              <div class="form-text">
+                Accepted: <strong>mp3, wav, m4a, webm, ogg, flac</strong> &middot;
+                up to {{ audio_max_mb }} MB &middot; transcribed <strong>locally</strong>
+                with Whisper (a few minutes of audio take a little while on CPU).
+                The transcript is placed in the box above &mdash; edit it, then analyze.
+              </div>
+              <button type="button" id="transcribeBtn" class="btn btn-outline-primary mt-2" disabled>
+                <i class="bi bi-mic me-1"></i> Transcribe audio
+              </button>
+              <div id="transcribeStatus" class="form-text mt-1"></div>
+              {% else %}
+              <div class="alert alert-light border small mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Audio transcription is available but the optional
+                <code>faster-whisper</code> package is not installed yet.
+                Run <code>pip install -r requirements-audio.txt</code> once
+                and restart the app.
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {# ---------------- options ---------------- #}
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 fw-semibold">
+              <i class="bi bi-sliders me-2 text-primary"></i>Options
+            </div>
+            <div class="card-body">
+
+              <label for="meeting_date" class="form-label">Meeting date</label>
+              <input type="date" class="form-control" id="meeting_date"
+                     name="meeting_date">
+              <div class="form-text">
+                Optional. When provided, relative deadlines such as
+                <em>&ldquo;next Monday&rdquo;</em> are resolved to a real date.
+                Without it they are left exactly as written.
+              </div>
+
+              <div class="alert alert-light border small mt-4 mb-0">
+                <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-1"></i>What you get</div>
+                <ul class="mb-0 ps-3">
+                  <li>Meeting title &amp; short summary</li>
+                  <li>Key discussion points</li>
+                  <li>Decisions <span class="badge text-bg-success">confirmed</span>
+                      vs <span class="badge text-bg-warning text-dark">suggested</span></li>
+                  <li>Action items with owner &amp; deadline</li>
+                  <li>Editable follow-up email (never sent automatically)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" id="analyzeBtn" class="btn btn-primary btn-lg">
+              <i class="bi bi-stars me-1"></i> Analyze meeting
+            </button>
+            <div id="formError" class="text-danger small text-center d-none"></div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const form     = document.getElementById('analyzeForm');
+  const notes    = document.getElementById('notes');
+  const file     = document.getElementById('file');
+  const count    = document.getElementById('charCount');
+  const formErr  = document.getElementById('formError');
+  const fileErr  = document.getElementById('fileError');
+  const btn      = document.getElementById('analyzeBtn');
+  const ALLOWED  = ['txt', 'pdf', 'docx'];
+  const MAX_MB   = {{ max_mb }};
+
+  notes.addEventListener('input', () => {
+    count.textContent = notes.value.length.toLocaleString();
+    hide(formErr);
+  });
+
+  file.addEventListener('change', () => {
+    hide(fileErr);
+    const f = file.files[0];
+    if (!f) return;
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    if (!ALLOWED.includes(ext)) {
+      show(fileErr, 'Only .txt, .pdf and .docx files are allowed.');
+      file.value = '';
+      return;
+    }
+    if (f.size > MAX_MB * 1024 * 1024) {
+      show(fileErr, 'This file is larger than the ' + MAX_MB + ' MB limit.');
+      file.value = '';
+    }
+  });
+
+  form.addEventListener('submit', (event) => {
+    const hasText  = notes.value.trim().length > 0;
+    const hasFile  = file.files.length > 0;
+
+    if (!hasText && !hasFile) {
+      event.preventDefault();
+      show(formErr, 'Please paste meeting notes or choose a file first.');
+      notes.focus();
+      return;
+    }
+    if (hasText && notes.value.trim().length < 30 && !hasFile) {
+      event.preventDefault();
+      show(formErr, 'Please paste at least 30 characters of meeting notes.');
+      notes.focus();
+      return;
+    }
+    // server-side validation is the authority; this only starts the spinner
+    showLoading('Analyzing your meeting\u2026',
+                'The AI is reading the notes and extracting decisions, owners and deadlines.');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing\u2026';
+  });
+
+  /* ---------- audio transcription (only when faster-whisper is installed) --- */
+  const audioFile = document.getElementById('audioFile');
+  if (audioFile) {
+    const AUDIO_EXT   = ['mp3', 'wav', 'm4a', 'webm', 'ogg', 'flac', 'mp4'];
+    const AUDIO_MAX   = {{ audio_max_mb }};
+    const tBtn        = document.getElementById('transcribeBtn');
+    const tStatus     = document.getElementById('transcribeStatus');
+
+    audioFile.addEventListener('change', () => {
+      hide(tStatus);
+      tBtn.disabled = true;
+      const f = audioFile.files[0];
+      if (!f) return;
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (!AUDIO_EXT.includes(ext)) {
+        show(tStatus, 'Audio files only: mp3, wav, m4a, webm, ogg or flac.');
+        audioFile.value = '';
+        return;
+      }
+      if (f.size > AUDIO_MAX * 1024 * 1024) {
+        show(tStatus, 'This recording is larger than the ' + AUDIO_MAX + ' MB limit.');
+        audioFile.value = '';
+        return;
+      }
+      tBtn.disabled = false;
+      show(tStatus, 'Ready to transcribe: ' + f.name);
+    });
+
+    tBtn.addEventListener('click', async () => {
+      const f = audioFile.files[0];
+      if (!f) return;
+      tBtn.disabled = true;
+      tBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Transcribing\u2026';
+      show(tStatus, 'Transcribing locally \u2014 long recordings take a while on CPU.');
+      const body = new FormData();
+      body.append('audio', f);
+      try {
+        const response = await fetch('{{ url_for("transcribe") }}', { method: 'POST', body: body });
+        let data = {};
+        try { data = await response.json(); } catch (e) { /* not JSON */ }
+        if (!response.ok || data.ok === false) {
+          show(tStatus, data.error || ('Transcription failed (' + response.status + ').'));
+          return;
+        }
+        notes.value = (notes.value ? notes.value.replace(/\s*$/, '') + '\n\n' : '') + data.text;
+        count.textContent = notes.value.length.toLocaleString();
+        show(tStatus, 'Transcript ready (' + (data.language || 'unknown language')
+          + ', ' + Math.round(data.seconds) + ' s) and added to the notes box \u2014 '
+          + 'check it, then click Analyze.');
+        showToast('Transcript added to the notes box.');
+        notes.focus();
+      } catch (err) {
+        show(tStatus, 'Transcription failed: ' + err.message);
+      } finally {
+        tBtn.disabled = false;
+        tBtn.innerHTML = '<i class="bi bi-mic me-1"></i> Transcribe audio';
+      }
+    });
+  }
+
+  function show(el, msg)  { el.textContent = msg; el.classList.remove('d-none'); }
+  function hide(el)       { el.classList.add('d-none'); }
+})();
+</script>
+{% endblock %}

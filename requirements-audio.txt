@@ -1,0 +1,14 @@
+# ---------------------------------------------------------------------------
+# Optional extras for Meeting Analyzer
+#
+# These packages are NOT required - the app works fully without them.
+# They enable ONE extra feature: transcribing audio recordings (mp3/wav/...)
+# into meeting notes, locally, with Whisper.
+#
+# Install with:
+#     pip install -r requirements-audio.txt
+#
+# The first transcription downloads the model once (~75 MB for "tiny",
+# ~145 MB for "base"). Change the model on the Settings page.
+# ---------------------------------------------------------------------------
+faster-whisper>=1.0

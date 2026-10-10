@@ -1,0 +1,27 @@
+# Secrets - never commit these
+.env
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Database and generated files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+uploads/
+reports/
+samples/output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

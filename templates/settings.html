@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Settings - Meeting Analyzer{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-1">Settings</h1>
+<p class="text-secondary mb-4">
+  Connection and application settings. The AI runs on a
+  <strong>local Ollama</strong> server on your machine &mdash; there is no
+  API key and nothing is ever sent to the cloud.
+</p>
+
+<div class="row g-4">
+
+  {# ---------------- AI connection ---------------- #}
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 fw-semibold">
+        <i class="bi bi-plug me-2 text-primary"></i>AI connection (local Ollama)
+      </div>
+      <div class="card-body">
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+          {% if ai_configured %}
+            <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Ollama configured</span>
+            <span class="small text-secondary">Model <code>{{ model }}</code> &mdash; runs locally, no API key required.</span>
+          {% else %}
+            <span class="badge text-bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Offline mode</span>
+            <span class="small text-secondary">No <code>OLLAMA_MODEL</code> was set &mdash; the built-in offline analyzer is used.</span>
+          {% endif %}
+        </div>
+
+        <form method="post" action="{{ url_for('settings') }}">
+          <div class="mb-3">
+            <label class="form-label" for="ollama_url">Ollama chat endpoint</label>
+            <input class="form-control" id="ollama_url" name="ollama_url"
+                   value="{{ ollama_url }}" placeholder="http://localhost:11434/api/chat">
+            <div class="form-text">
+              The <code>/api/chat</code> address of your Ollama server
+              (default port is 11434).
+              Default from <code>.env</code>: <code>{{ env_url or '(not set)' }}</code>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="ollama_model">Model name</label>
+            <input class="form-control" id="ollama_model" name="ollama_model"
+                   value="{{ model }}" placeholder="qwen2.5:3b">
+            <div class="form-text">
+              Any model you have downloaded (<code>ollama list</code> shows them).
+              Default from <code>.env</code>: <code>{{ env_model or '(not set)' }}</code>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="mb-3">
+            <label class="form-label" for="whisper_model">Speech-to-text model (audio uploads)</label>
+            <select class="form-select" id="whisper_model" name="whisper_model">
+              {% for s in whisper_sizes %}
+                <option value="{{ s }}" {% if whisper_model == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              {% if audio_available %}
+                <span class="text-success"><i class="bi bi-check-circle me-1"></i>faster-whisper installed</span>
+                &mdash; <code>tiny</code> is fastest, <code>small</code>/<code>medium</code> are more
+                accurate but slower on CPU. The model downloads once on first use.
+              {% else %}
+                <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>faster-whisper not installed</span>
+                &mdash; run <code>pip install -r requirements-audio.txt</code> once to enable audio transcription.
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-save me-1"></i> Save settings
+            </button>
+            <button class="btn btn-outline-secondary" type="button" id="testBtn">
+              <i class="bi bi-lightning me-1"></i> Test connection
+            </button>
+          </div>
+        </form>
+
+        <div id="testResult" class="alert mt-3 d-none" role="alert"></div>
+
+        <hr>
+        <div class="small text-secondary">
+          <div class="fw-semibold text-body mb-1">How to set up Ollama (free &amp; local)</div>
+          <ol class="mb-0 ps-3">
+            <li>Install Ollama from <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>
+                (or <code>winget install Ollama.Ollama</code>).</li>
+            <li>Start the server: run <code>ollama serve</code> in a terminal
+                (the Windows app does this for you).</li>
+            <li>Download the model once: <code>ollama pull qwen2.5:3b</code>.</li>
+            <li>Set <code>OLLAMA_URL</code> and <code>OLLAMA_MODEL</code> in
+                <code>.env</code> (or save them here), then restart the app.</li>
+          </ol>
+          <div class="mt-2">Values saved here override the <code>.env</code>
+            defaults shown next to each field.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---------------- application info ---------------- #}
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 fw-semibold">
+        <i class="bi bi-database me-2 text-primary"></i>Storage
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-secondary">Database</dt>
+          <dd class="col-7 text-break"><code>{{ db_path }}</code></dd>
+          <dt class="col-5 text-secondary">Uploaded files</dt>
+          <dd class="col-7">read in memory, never saved to disk</dd>
+          <dt class="col-5 text-secondary">Max upload size</dt>
+          <dd class="col-7">{{ max_mb }} MB (TXT / PDF / DOCX)</dd>
+          <dt class="col-5 text-secondary">Max audio upload</dt>
+          <dd class="col-7">{{ audio_max_mb }} MB (mp3 / wav / m4a / ...)</dd>
+          <dt class="col-5 text-secondary">Max text length</dt>
+          <dd class="col-7">60,000 characters</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 fw-semibold">
+        <i class="bi bi-shield-check me-2 text-primary"></i>Task statuses
+      </div>
+      <div class="card-body small">
+        {% for s in statuses %}
+          <span class="badge text-bg-light border me-1">{{ s }}</span>
+        {% endfor %}
+        <div class="text-secondary mt-2">
+          Status options used by the action-item table. Missing owners or
+          deadlines always display as <strong>Not specified</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const btn = document.getElementById('testBtn');
+  const out = document.getElementById('testResult');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Testing\u2026';
+    out.classList.add('d-none');
+    try {
+      const res  = await fetch('{{ url_for("settings_test") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+      });
+      const data = await res.json();
+      out.className = 'alert mt-3 ' + (data.ok ? 'alert-success' : 'alert-danger');
+      out.textContent = data.message;
+    } catch (err) {
+      out.className = 'alert mt-3 alert-danger';
+      out.textContent = 'The test request failed: ' + err.message;
+    } finally {
+      out.classList.remove('d-none');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-lightning me-1"></i> Test connection';
+    }
+  });
+})();
+</script>
+{% endblock %}

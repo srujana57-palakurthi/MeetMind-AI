@@ -1,0 +1,47 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 730 >>
+stream
+BT /F1 12 Tf 72 720 Td 16 TL
+(Client Call: Acme Corporation) Tj T*
+(Date: 6 October 2026, 14:00 - 14:40) Tj T*
+(Attendees: Priya, Ravi, Mr. Acme, Ms. Lee) Tj T*
+() Tj T*
+(The demo of the version 2 features went very well.) Tj T*
+(Mr. Acme liked the new reporting dashboard the most.) Tj T*
+(Ms. Lee asked whether the data can be exported to Excel.) Tj T*
+() Tj T*
+(It was agreed to extend the contract for another year.) Tj T*
+(The idea of a dedicated support line was discussed as a suggestion.) Tj T*
+() Tj T*
+(Priya will send the pricing proposal by 2026-10-13.) Tj T*
+(Ravi will schedule an on-site training session by end of next week.) Tj T*
+(The follow-up questionnaire needs to be prepared - owner not specified.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1092
+%%EOF

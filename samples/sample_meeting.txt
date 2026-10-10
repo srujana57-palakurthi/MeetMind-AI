@@ -1,0 +1,26 @@
+Weekly Product Sync - 9 October 2026
+Attendees: Alice, Bob, Carol, Dave
+
+1. Login bug
+Alice reported that the login bug reported by customers is fixed and was
+deployed to production this morning.
+
+2. Launch date
+The team discussed moving the launch because the marketing pages are not
+ready. It was agreed to move the launch date to 20 October 2026.
+Carol suggested also postponing the press release, but the team decided to
+keep the press release on the original date.
+
+3. Pricing page
+Dave proposed a new pricing page with three tiers. The team agreed this is
+worth testing but no final decision was made today.
+
+4. Customer feedback
+Bob shared that 12 customers asked for a dark mode. This was noted for the
+backlog.
+
+Action items:
+- Alice will send the release notes to the support team by next Monday.
+- Bob to prepare the customer feedback summary (no deadline given).
+- Carol will book the launch webinar room by 2026-10-16.
+- Dave to update the roadmap slide - due end of next week.
