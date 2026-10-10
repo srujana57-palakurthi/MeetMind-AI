@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Meeting Analyzer
 
 **Convert meeting notes or transcripts into summaries, action items, owners, deadlines, and follow-up emails.**
@@ -402,3 +403,7 @@ Next ideas:
 **Note:** this app prepares the follow-up email but **never sends anything by
 itself** — you review, edit, copy or download it and send it from your own mail
 program.
+=======
+# MeetMind-AI
+AI-powered making summarization and action item assistant.
+>>>>>>> a0e3a547c91582628d35588a62d144925b339a85
